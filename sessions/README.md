@@ -1,0 +1,1 @@
+Here we store the sessions, we decided on a simple json storage for example purposes, but you would use a database.
