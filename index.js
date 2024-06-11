@@ -47,7 +47,6 @@ app.get('/start', async (req, res) => {
   const startUrl = `${process.env.API_URL}/omni/start`;
   const startParams = {
     configurationId: process.env.FLOW_ID,
-    countryCode: "ALL",
     language: "en-US",
     // redirectionUrl: "https://example.com?custom_parameter=some+value",
     // externalCustomerId: "the id of the customer in your system",
@@ -72,7 +71,6 @@ app.get('/onboarding-url', async (req, res) => {
   const startUrl = `${process.env.API_URL}/omni/start`;
   const startParams = {
     configurationId: process.env.FLOW_ID,
-    countryCode: "ALL",
     language: "en-US",
     // redirectionUrl: "https://example.com?custom_parameter=some+value",
     // externalCustomerId: "the id of the customer in your system",
@@ -311,6 +309,41 @@ app.post('/auth', async (req, res) => {
     data: {...params,...verificationData}
   }
   res.status(200).send(verificationData);
+  
+  // Write to a log so you can debug it.
+  console.log(log);
+});
+
+// Finishes the session started at /start
+app.post('/finish', async (req, res) => {
+  let finishStatus = null;
+  const data = JSON.parse(req.body.toString());
+  const {token} = data;
+
+  
+  if (!token) {
+    res.status(400).send({success:false, error:'Missing required parameter token'});
+    return;
+  }
+  
+  header = {...defaultHeader};
+  header['X-Incode-Hardware-Id'] = token;
+  
+  //Let's find out the score
+ const url = `${process.env.API_URL}/omni/finish-status`;  let onboardingScore = null
+  try {
+    finishStatus = await doGet(url, {}, header);
+  } catch(e) {
+    console.log(e.message);
+    res.status(500).send({success:false, error: e.message});
+    return;
+  }
+
+  log = {
+    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    data: {finishStatus}
+  }
+  res.status(200).send(finishStatus);
   
   // Write to a log so you can debug it.
   console.log(log);

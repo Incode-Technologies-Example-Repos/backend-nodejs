@@ -26,6 +26,8 @@ Expects `interviewId` as query param.
 
 - POST `/approve`: Example webhook that reads the json data and if the status is ONBOARDING_FINISHED goes ahead and creates the identity using the `/omni/process/approve` endpoint.
 
+- POST `/finish`: Finishes the session, receives the token as a body parameter
+
 ## Secure Credential Handling
 We highly recommend to follow the 0 rule for your implementations, where all sensitive calls to incode's endpoints are done in the backend, keeping your apikey protected and just returning a `token` with the user session to the frontend.
 
@@ -115,6 +117,19 @@ curl --location 'https://yourforwardingurl.app/auth' \
     "transactionId": "Transaction Id obtained at face login",
     "token": "Token obtained at face login ",
     "interviewToken": "Interview token obtained at face login",
+}'
+```
+
+### Finish
+Finishes a session, is the matching endpoint of `/start`
+
+```bash
+curl --location 'https://yourforwardingurl.app/finish' \
+--header 'Content-Type: application/json' \
+--data '{
+    
+    "token": "Token obtained at the /start endpoint ",
+   
 }'
 ```
 
