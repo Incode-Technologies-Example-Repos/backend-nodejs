@@ -316,6 +316,42 @@ app.post('/auth', async (req, res) => {
   console.log(log);
 });
 
+// Receives the information about a faceMatch attempt and verifies
+// if it was correct and has not been tampered.
+app.post('/finish', async (req, res) => {
+  let finishStatus = null;
+  const data = JSON.parse(req.body.toString());
+  const {token} = data;
+
+  
+  if (!token) {
+    res.status(400).send({success:false, error:'Missing required parameter token'});
+    return;
+  }
+  
+  header = {...defaultHeader};
+  header['X-Incode-Hardware-Id'] = token;
+  
+  //Let's find out the score
+ const url = `${process.env.API_URL}/omni/finish-status`;  let onboardingScore = null
+  try {
+    finishStatus = await doGet(url, {}, header);
+  } catch(e) {
+    console.log(e.message);
+    res.status(500).send({success:false, error: e.message});
+    return;
+  }
+
+  log = {
+    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    data: {finishStatus}
+  }
+  res.status(200).send(finishStatus);
+  
+  // Write to a log so you can debug it.
+  console.log(log);
+});
+
 app.get('*', function(req, res){
   res.status(404).json({error: `Cannot GET ${req.url}`});
 });
