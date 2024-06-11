@@ -314,8 +314,7 @@ app.post('/auth', async (req, res) => {
   console.log(log);
 });
 
-// Receives the information about a faceMatch attempt and verifies
-// if it was correct and has not been tampered.
+// Finishes the session started at /start
 app.post('/finish', async (req, res) => {
   let finishStatus = null;
   const data = JSON.parse(req.body.toString());
