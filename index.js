@@ -47,7 +47,6 @@ app.get('/start', async (req, res) => {
   const startUrl = `${process.env.API_URL}/omni/start`;
   const startParams = {
     configurationId: process.env.FLOW_ID,
-    countryCode: "ALL",
     language: "en-US",
     // redirectionUrl: "https://example.com?custom_parameter=some+value",
     // externalCustomerId: "the id of the customer in your system",
@@ -72,7 +71,6 @@ app.get('/onboarding-url', async (req, res) => {
   const startUrl = `${process.env.API_URL}/omni/start`;
   const startParams = {
     configurationId: process.env.FLOW_ID,
-    countryCode: "ALL",
     language: "en-US",
     // redirectionUrl: "https://example.com?custom_parameter=some+value",
     // externalCustomerId: "the id of the customer in your system",
