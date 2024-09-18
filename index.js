@@ -290,7 +290,7 @@ app.post('/approve', async (req, res) => {
 
 // Receives the information about a faceMatch attempt and verifies
 // if it was correct and has not been tampered.
-app.post('/verify', async (req, res) => {
+app.post('/auth', async (req, res) => {
   const faceMatchData = JSON.parse(req.body.toString());
   const {transactionId, token, interviewToken} = faceMatchData;
   const verifyAttemptUrl = `${process.env.API_URL}/omni/authentication/verify`;
