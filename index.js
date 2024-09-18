@@ -290,7 +290,7 @@ app.post('/approve', async (req, res) => {
 
 // Receives the information about a faceMatch attempt and verifies
 // if it was correct and has not been tampered.
-app.post('/auth', async (req, res) => {
+app.post('/verify', async (req, res) => {
   const faceMatchData = JSON.parse(req.body.toString());
   const {transactionId, token, interviewToken} = faceMatchData;
   const verifyAttemptUrl = `${process.env.API_URL}/omni/authentication/verify`;
@@ -314,6 +314,72 @@ app.post('/auth', async (req, res) => {
   console.log(log);
 });
 
+// if it was correct and has not been tampered.
+app.post('/sign', async (req, res) => {
+  /** Receive contract and token as parameters */
+  const signParamsData = JSON.parse(req.body.toString());
+  const { interviewToken, base64Contract } = signParamsData;
+  
+  /** Prepare the authorization header that will be used in calls to incode */
+  sessionHeader = {...defaultHeader};
+  sessionHeader['X-Incode-Hardware-Id'] = interviewToken;
+  
+  let response = {};
+  try{
+    /** Get URL where to upload the contract */
+    const generateDocumentUploadUrl = `${process.env.API_URL}/omni/es/generateDocumentUploadUrl`;
+    const documentURLData = await doPost(generateDocumentUploadUrl, { token:interviewToken }, sessionHeader);
+    const {referenceId, preSignedUrl} = documentURLData
+    
+    /** Upload contract to AWS presigned url */
+    const binary = Buffer.from(base64Contract, 'base64');
+    const uploadResponse =  await fetch(preSignedUrl, {
+      method: "PUT",
+      headers: {"Content-Type": "application/pdf"},
+      body: binary,
+    })
+    if (!uploadResponse.ok) {
+      throw new Error('Uploading contract failed with code ' + uploadResponse.status)
+    }
+    
+    /** Sign the document */
+    const signURL = `${process.env.API_URL}/omni/es/process/sign`;
+    const signData = await doPost(signURL,
+      {
+        "documentRef": referenceId,
+        "userConsented": true
+      },
+      sessionHeader
+    );
+    const {success} = signData
+    if (!success) { throw new Error('Sign failed');}
+    
+    /** Fetch all signed document references */
+    const documentsSignedURL = `${process.env.API_URL}/omni/es/documents/signed`;
+    const documentsSignedData = await doGet(documentsSignedURL, {}, sessionHeader);
+    const {documents} = documentsSignedData
+    
+    /** This endpoint returns all documents, find the one just signed  matching by referenceId*/
+    const justSigned = documents.find(document => document.documentRef=== referenceId)
+    
+    /** Return referenceId and documentUrl */
+    const {documentRef, documentUrl} = justSigned
+    response = {referenceId, documentUrl}
+  
+  } catch(e) {
+    console.log(e.message);
+    res.status(500).send({success:false, error: e.message});
+    return;
+  }
+  log = {
+    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    data: {...response}
+  }
+  res.status(200).send(response);
+  // Write to a log so you can debug it.
+  console.log(log);
+});
+
 // Finishes the session started at /start
 app.post('/finish', async (req, res) => {
   let finishStatus = null;
@@ -330,7 +396,7 @@ app.post('/finish', async (req, res) => {
   header['X-Incode-Hardware-Id'] = token;
   
   //Let's find out the score
- const url = `${process.env.API_URL}/omni/finish-status`;  let onboardingScore = null
+  const url = `${process.env.API_URL}/omni/finish-status`;  let onboardingScore = null
   try {
     finishStatus = await doGet(url, {}, header);
   } catch(e) {
@@ -362,11 +428,12 @@ const doPost = async (url, bodyparams, headers) => {
   try {
     const response = await fetch(url, { method: 'POST', body: JSON.stringify(bodyparams), headers});
     if (!response.ok) {
-      //console.log(await response.json());
+     //console.log(response.json());
       throw new Error('Request failed with code ' + response.status)
     }
     return response.json();
   } catch(e) {
+    console.log({url, bodyparams, headers})
     throw new Error('HTTP Post Error: ' + e.message)
   }
 }
@@ -380,6 +447,7 @@ const doGet = async (url, params, headers) => {
     }
     return response.json();
   } catch(e) {
+    console.log({url, params, headers})
     throw new Error('HTTP Get Error: ' + e.message)
   }
 }
